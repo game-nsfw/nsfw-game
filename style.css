@@ -62,6 +62,7 @@ body {
 }
 
 .logo-sub {
+  font-family: "Permanent Marker", system-ui, sans-serif;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 2px;
