@@ -325,6 +325,40 @@ button {
 
 /* Rückseite */
 
+.flip-card-back {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(circle at top left, rgba(255, 102, 196, 0.35), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(81, 112, 255, 0.45), transparent 60%),
+    linear-gradient(145deg, #050515, #15152b);
+  padding: 18px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.flip-card-back::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.flip-card-back::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 26px;
+  background: radial-gradient(circle at 10% -10%, rgba(255, 255, 255, 0.08), transparent 55%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Vorderseite */
+
 .flip-card-front {
   background:
     radial-gradient(circle at top, rgba(255, 102, 196, 0.22), transparent 55%),
@@ -353,6 +387,8 @@ button {
 }
 
 .card-back-label {
+  position: relative;
+  z-index: 1;
   font-family: "Permanent Marker", system-ui, sans-serif;
   font-size: 26px;
   text-transform: uppercase;
@@ -363,40 +399,38 @@ button {
   color: transparent;
 }
 
-/* Vorderseite */
+/* Header in der Karte */
 
-.flip-card-back {
-  transform: rotateY(180deg);
-  background:
-    radial-gradient(circle at top left, rgba(255, 102, 196, 0.35), transparent 55%),
-    radial-gradient(circle at bottom right, rgba(81, 112, 255, 0.45), transparent 60%),
-    linear-gradient(145deg, #050515, #15152b);
-  padding: 18px 18px 20px;
+.card-header-row {
   display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow: hidden;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-/* leichter Rahmen-Glow */
-.flip-card-back::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  pointer-events: none;
+.card-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(12, 20, 60, 0.9);
+  border: 1px solid rgba(81, 112, 255, 0.7);
+  color: #c7d2ff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.flip-card-back::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 26px;
-  background: radial-gradient(circle at 10% -10%, rgba(255, 255, 255, 0.08), transparent 55%);
-  opacity: 0.6;
-  pointer-events: none;
+.card-nsfw-pill {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 0 0, #ff66c4, #ff3355);
+  color: #050509;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
+
+/* Titel & Text */
 
 .card-title {
   font-family: "Permanent Marker", system-ui, sans-serif;
@@ -409,12 +443,6 @@ button {
   color: #e3e3ff;
   line-height: 1.45;
   white-space: pre-wrap;
-}
-
-.card-text {
-  font-size: 14px;
-  color: var(--text-main);
-  line-height: 1.4;
 }
 
 /* Controls */
