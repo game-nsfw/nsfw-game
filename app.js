@@ -28,6 +28,10 @@ const rouletteFill = document.getElementById("roulette-fill");
 const gameCardEl = document.getElementById("game-card");
 const cardTitleEl = document.getElementById("card-title");
 const cardTextEl = document.getElementById("card-text");
+const cardIconEl = document.getElementById("card-icon");
+const cardFooterEl = document.getElementById("card-footer");
+
+const statsListEl = document.getElementById("stats-list");
 
 const modal = document.getElementById("modal");
 const modalTitleEl = document.getElementById("modal-title");
@@ -102,7 +106,7 @@ function randomRouletteIncrement() {
 }
 
 // ====== KARTEN-DECK (PLATZHALTER!) ======
-// HIER später deine echten Karten reinziehen (z.B. aus cards.json)
+// Hier später deine echten Karten eintragen.
 const ALL_CARDS = [
   {
     id: "drink_1",
@@ -140,7 +144,6 @@ const ALL_CARDS = [
     text: "Für wie viel würdest du XYZ tun? Alle heben die Hand, der Zieher versteigert von 100 Mio. runter.",
     config: { winnerGives: 2, requiresWinner: true },
   },
-  // TODO: hier später alle deine Karten variantenweise eintragen
 ];
 
 // Deck generieren
@@ -148,7 +151,7 @@ function buildDeck() {
   const deck = [];
   ALL_CARDS.forEach((card) => {
     for (let i = 0; i < card.copies; i++) {
-      deck.push({ ...card }); // flache Kopie
+      deck.push({ ...card });
     }
   });
   return shuffle(deck);
@@ -229,8 +232,9 @@ function startGameFromSetup(event) {
 
   updateRouletteUI();
   updateCurrentPlayerUI();
+  updateStatsUI();
   resetCardFlip();
-  drawNextCard(); // erste Karte verdeckt bereitstellen
+  drawNextCard(); // erste Karte verdeckt
 
   switchView("view-game");
 }
@@ -247,6 +251,43 @@ function updateRouletteUI() {
   rouletteFill.style.width = val + "%";
 }
 
+// Stats unter der Karte aktualisieren
+function updateStatsUI() {
+  if (!statsListEl) return;
+
+  statsListEl.innerHTML = "";
+
+  if (!state.players || state.players.length === 0) {
+    const row = document.createElement("div");
+    row.className = "stats-row";
+    row.innerHTML = `<span class="stats-row-name">Noch keine Spieler</span>`;
+    statsListEl.appendChild(row);
+    return;
+  }
+
+  // Sortierung: wer am meisten getrunken hat zuerst
+  const sorted = state.players
+    .map((p, index) => ({ ...p, index }))
+    .sort((a, b) => b.drunk - a.drunk);
+
+  sorted.forEach((p) => {
+    const row = document.createElement("div");
+    row.className = "stats-row";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "stats-row-name";
+    nameSpan.textContent = p.name;
+
+    const valueSpan = document.createElement("span");
+    valueSpan.className = "stats-row-value";
+    valueSpan.textContent = `🍺 ${p.drunk} | 🎯 ${p.given}`;
+
+    row.appendChild(nameSpan);
+    row.appendChild(valueSpan);
+    statsListEl.appendChild(row);
+  });
+}
+
 // Karte UI
 
 function resetCardFlip() {
@@ -254,12 +295,58 @@ function resetCardFlip() {
   gameCardEl.classList.remove("flipped");
   cardTitleEl.textContent = "";
   cardTextEl.textContent = "";
+  if (cardIconEl) cardIconEl.textContent = "";
+  if (cardFooterEl) cardFooterEl.textContent = "";
+}
+
+function getIconForCard(card) {
+  switch (card.type) {
+    case "simple_drink":
+      return "🍺";
+    case "simple_give":
+      return "🍻";
+    case "price":
+      return "💸";
+    default:
+      return "✨";
+  }
+}
+
+function getFooterTextForCard(card) {
+  switch (card.type) {
+    case "simple_drink": {
+      const sips = card.config?.drink || 0;
+      if (!sips) return "";
+      return `Trinkt: ${sips} Schluck${sips > 1 ? "e" : ""}`;
+    }
+    case "simple_give": {
+      const sips = card.config?.give || 0;
+      if (!sips) return "";
+      return `Verteilen: ${sips} Schluck${sips > 1 ? "e" : ""}`;
+    }
+    case "price": {
+      const winnerGives = card.config?.winnerGives || 2;
+      return `Gewinner verteilt: ${winnerGives}`;
+    }
+    default:
+      return "";
+  }
 }
 
 function revealCardUI() {
   if (!state.currentCard) return;
-  cardTitleEl.textContent = state.currentCard.title || "";
-  cardTextEl.textContent = state.currentCard.text || "";
+  const card = state.currentCard;
+
+  cardTitleEl.textContent = card.title || "";
+  cardTextEl.textContent = card.text || "";
+
+  if (cardIconEl) {
+    cardIconEl.textContent = getIconForCard(card);
+  }
+  if (cardFooterEl) {
+    cardFooterEl.textContent = getFooterTextForCard(card);
+  }
+
   gameCardEl.classList.add("flipped");
   state.isCardRevealed = true;
 }
@@ -335,7 +422,6 @@ function applyCardEffect(card, playerIndex, onDone) {
       break;
     }
     case "price": {
-      // Was ist dein Preis? – Auktion → Gewinner wählen → 2 verteilen
       const winnerGives = card.config?.winnerGives || 2;
       const bodyHtml = `<p>Wer hat die verrückteste / glaubwürdigste Antwort gegeben?</p><p>Wähle den Gewinner. Er darf ${winnerGives} Schluck(e) verteilen.</p>`;
       showPlayerChoiceModal(
@@ -349,7 +435,6 @@ function applyCardEffect(card, playerIndex, onDone) {
       break;
     }
     default: {
-      // TODO: später alle Spezialkarten (King, VS, Buddy, etc.)
       onDone();
     }
   }
@@ -373,12 +458,10 @@ function triggerRouletteEvent() {
   const roll = Math.random();
   let msg;
   if (roll < 0.5) {
-    // Pech → 1–3 trinken
     const sips = 1 + Math.floor(Math.random() * 3); // 1-3
     addDrink(playerIndex, sips);
     msg = `${player.name} hat das Roulette voll gemacht und trinkt ${sips} Schluck${sips > 1 ? "e" : ""}.`;
   } else {
-    // Glück → 1 verteilen
     addGive(playerIndex, 1);
     msg = `${player.name} hat Glück! Er darf 1 Schluck an jemanden verteilen.`;
   }
@@ -400,7 +483,7 @@ function addDrink(playerIndex, amount) {
     playerTurnAtEvent: p.turns,
   });
 
-  // Buddy
+  // Buddy-Effekt (später nutzbar)
   const buddyIndex = state.buddies[playerIndex];
   if (typeof buddyIndex === "number") {
     const buddy = state.players[buddyIndex];
@@ -414,6 +497,8 @@ function addDrink(playerIndex, amount) {
       });
     }
   }
+
+  updateStatsUI();
 }
 
 function addGive(playerIndex, amount) {
@@ -426,6 +511,8 @@ function addGive(playerIndex, amount) {
     given: amount,
     playerTurnAtEvent: p.turns,
   });
+
+  updateStatsUI();
 }
 
 // ====== SPIELER-ROTATION ======
@@ -445,14 +532,12 @@ function advanceToNextPlayer() {
 // ====== SIEGEREHRUNG ======
 
 function endGameAndShowSummary(deckEmpty) {
-  // Prüfen, ob mindestens eine volle Runde existiert
   const turnsArray = state.players.map((p) => p.turns);
   const minTurns = Math.min(...turnsArray);
 
   let computedStats;
 
   if (minTurns > 0) {
-    // Nur volle Runden werten
     computedStats = state.players.map((p, index) => ({
       index,
       name: p.name,
@@ -469,11 +554,9 @@ function endGameAndShowSummary(deckEmpty) {
       }
     });
 
-    // Hinweis
     document.getElementById("summary-note").innerHTML =
       "<em>Hinweis: Für die Wertung wurden nur vollständig gespielte Runden berücksichtigt. Aktionen aus der letzten angebrochenen Runde sind nicht in die Platzierung eingeflossen.</em>";
   } else {
-    // Variante A: trotzdem auswerten
     computedStats = state.players.map((p, index) => ({
       index,
       name: p.name,
@@ -485,11 +568,9 @@ function endGameAndShowSummary(deckEmpty) {
       "<em>Hinweis: Ihr habt das Spiel beendet, bevor alle einmal an der Reihe waren. Die folgende Auswertung basiert auf allen bisherigen Aktionen und kann leicht unausgeglichen sein – selber schuld.</em>";
   }
 
-  // Sortieren nach getrunkenen Schlücken (absteigend)
   computedStats.sort((a, b) => b.drunk - a.drunk);
 
   renderPodium(computedStats);
-
   switchView("view-summary");
 }
 
@@ -499,7 +580,7 @@ function renderPodium(stats) {
 
   const top3 = stats.slice(0, 3);
 
-  const places = [2, 1, 3]; // visuelle Reihenfolge (2 | 1 | 3)
+  const places = [2, 1, 3];
   places.forEach((place) => {
     const slot = document.createElement("div");
     slot.className = `podium-slot place-${place}`;
@@ -603,12 +684,10 @@ gameCardEl.addEventListener("click", () => {
 document.getElementById("btn-next").addEventListener("click", handleNextButton);
 
 document.getElementById("btn-end-game").addEventListener("click", () => {
-  // Frühzeitiges Beenden → Siegerehrung mit Hinweis
   endGameAndShowSummary(false);
 });
 
 document.getElementById("btn-new-game").addEventListener("click", () => {
-  // gleiche Spieler erneut verwenden
   state.players.forEach((p) => {
     p.drunk = 0;
     p.given = 0;
@@ -627,6 +706,7 @@ document.getElementById("btn-new-game").addEventListener("click", () => {
 
   updateRouletteUI();
   updateCurrentPlayerUI();
+  updateStatsUI();
   resetCardFlip();
   drawNextCard();
 
@@ -667,3 +747,4 @@ initYear();
 initPlayerInputs();
 updateRouletteUI();
 updateCurrentPlayerUI();
+updateStatsUI();
