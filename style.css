@@ -323,6 +323,7 @@ button {
   max-width: 360px;
   aspect-ratio: 3 / 4;
   perspective: 1000px;
+  -webkit-perspective: 1000px;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
 }
@@ -346,8 +347,10 @@ button {
 .flip-card-back {
   position: absolute;
   inset: 0;
-  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
   border-radius: 26px;
   border: 1px solid var(--border-soft);
   box-shadow: var(--shadow-soft);
