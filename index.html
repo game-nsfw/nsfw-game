@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>NSFW Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google Font: Permanent Marker -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- HEADER / LOGO -->
+    <header class="app-header">
+      <div class="logo">NSFW</div>
+      <div class="logo-sub">No Shame For Winning</div>
+    </header>
+
+    <!-- VIEW: DISCLAIMER / AGE GATE -->
+    <main id="view-age" class="view active">
+      <section class="card-panel">
+        <h1 class="headline">🔞 Altersbestätigung</h1>
+        <p>
+          Diese Webseite enthält altersbeschränkte Inhalte, darunter Darstellungen von Alkoholkonsum,
+          explizite Fragen sowie humoristisch-provokante Texte.
+        </p>
+        <p>
+          Mit dem Betreten dieser Webseite bestätigen Sie, dass Sie mindestens 18 Jahre alt sind
+          und mit der Anzeige dieser Inhalte einverstanden sind.
+        </p>
+        <p>
+          Die Inhalte sind rein unterhaltend gemeint, können jedoch für manche Personen triggert
+          oder unangenehm wirken. Konsumieren Sie Alkohol und die Inhalte dieser Seite
+          verantwortungsbewusst.
+        </p>
+        <div class="button-row">
+          <button id="btn-age-accept" class="btn-primary">Ich bin 18 oder älter</button>
+          <button id="btn-age-decline" class="btn-ghost">Ich bin unter 18</button>
+        </div>
+        <p class="age-note">
+          Wenn du unter 18 bist, verlasse diese Seite bitte.
+        </p>
+      </section>
+    </main>
+
+    <!-- VIEW: SETUP / SPIELER -->
+    <main id="view-setup" class="view">
+      <section class="card-panel">
+        <h1 class="headline">Spieler & Setup</h1>
+        <p>Gib die Namen aller Mitspieler ein. Es werden automatisch neue Felder hinzugefügt.</p>
+
+        <form id="player-form" class="player-form">
+          <div id="player-inputs"></div>
+          <button type="submit" class="btn-primary">Spiel starten</button>
+        </form>
+      </section>
+    </main>
+
+    <!-- VIEW: GAME -->
+    <main id="view-game" class="view">
+      <section class="game-layout">
+
+        <!-- Roulette -->
+        <div class="roulette-container">
+          <div class="roulette-label">Roulette</div>
+          <div class="roulette-bar">
+            <div id="roulette-fill" class="roulette-fill"></div>
+          </div>
+        </div>
+
+        <!-- Aktueller Spieler -->
+        <div class="current-player">
+          <span class="label">Spieler:</span>
+          <span id="current-player-name" class="player-name-gradient">–</span>
+        </div>
+
+        <!-- Karte (Flip) -->
+        <div class="card-wrapper">
+          <div id="game-card" class="flip-card">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <div class="card-back-label">Karte ziehen</div>
+              </div>
+              <div class="flip-card-back">
+                <div id="card-title" class="card-title">Kartentitel</div>
+                <div id="card-text" class="card-text">
+                  Kartentext / Frage / Aufgabe wird hier angezeigt.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="controls">
+          <button id="btn-next" class="btn-primary btn-large">Next</button>
+          <button id="btn-end-game" class="btn-link-small">spiel beenden</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- VIEW: SIEGEREHRUNG -->
+    <main id="view-summary" class="view">
+      <section class="card-panel">
+        <h1 class="headline">🏆 Siegerehrung</h1>
+        <div id="summary-podium" class="podium"></div>
+        <div id="summary-note" class="summary-note"></div>
+
+        <div class="summary-bonus">
+          <p>
+            🎉 Bonus-Regel zum Abschluss:
+          </p>
+          <p>
+            🥇 Platz 1 darf <strong>3 Schlücke</strong> an beliebige Mitspieler verteilen.<br>
+            🥈 Platz 2 darf <strong>1 Schluck</strong> verteilen.<br>
+            🥉 Platz 3 geht leer aus – Ehre ist genug.
+          </p>
+        </div>
+
+        <div class="button-row">
+          <button id="btn-new-game" class="btn-primary">Neue Runde</button>
+          <button id="btn-back-to-setup" class="btn-ghost">Zurück zum Start</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- SIMPLE MODAL (z.B. Roulette-Ereignis, Gewinnerwahl, Spielerauswahl) -->
+    <div id="modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <h2 id="modal-title" class="modal-title"></h2>
+        <div id="modal-body" class="modal-body"></div>
+        <div class="modal-actions" id="modal-actions"></div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <span>© <span id="year"></span> Jakob Peters</span>
+      <span class="footer-links">
+        <button class="link-button" id="btn-imprint">Impressum</button>
+        <button class="link-button" id="btn-privacy">Datenschutz</button>
+      </span>
+    </footer>
+
+    <!-- Impressum / Datenschutz als einfache Modals -->
+    <div id="legal-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content modal-scrollable">
+        <h2 id="legal-title" class="modal-title"></h2>
+        <div id="legal-body" class="modal-body legal-body"></div>
+        <div class="modal-actions">
+          <button id="btn-close-legal" class="btn-primary">Schließen</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
