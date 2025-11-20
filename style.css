@@ -238,6 +238,13 @@ button {
   text-align: center;
 }
 
+/* Reihenfolge der Bereiche im Spiellayout */
+.roulette-container { order: 1; }
+.current-player     { order: 2; }
+.card-wrapper       { order: 3; }
+.controls           { order: 4; }
+.stats-panel        { order: 5; }
+
 /* Roulette */
 
 .roulette-container {
@@ -316,6 +323,8 @@ button {
   max-width: 360px;
   aspect-ratio: 3 / 4;
   perspective: 1000px;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
 }
 
 .flip-card-inner {
@@ -324,6 +333,9 @@ button {
   position: relative;
   transition: transform 0.6s;
   transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .flip-card.flipped .flip-card-inner {
