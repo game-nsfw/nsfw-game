@@ -17,8 +17,10 @@
 
     <!-- HEADER / LOGO -->
     <header class="app-header">
-      <div class="logo">NSFW</div>
-      <div class="logo-sub">No Shame For Winning</div>
+      <div class="logo-wrapper">
+        <div class="logo">NSFW</div>
+        <div class="logo-sub">NO SHAME FOR WINNING</div>
+      </div>
     </header>
 
     <!-- VIEW: DISCLAIMER / AGE GATE -->
@@ -82,19 +84,43 @@
         <!-- Karte (Flip) -->
         <div class="card-wrapper">
           <div id="game-card" class="flip-card">
-            <div class="flip-card-back">
-              <div class="card-header-row">
-              <div id="card-tag" class="card-tag">Kategorie</div>
-              <div class="card-nsfw-pill">NSFW</div>
-              </div>
-              <div id="card-title" class="card-title">Kartentitel</div>
-              <div id="card-text" class="card-text">
-              Kartentext / Frage / Aufgabe wird hier angezeigt.
+            <div class="flip-card-inner">
+
+              <!-- Rückseite: NSFW + Ziehen -->
+              <div class="flip-card-front">
+                <div class="card-back-inner">
+                  <div class="card-back-logo">NSFW</div>
+                  <div class="card-back-sub">Ziehen</div>
                 </div>
               </div>
+
+              <!-- Vorderseite: Icon, Titel, Text, Footer -->
+              <div class="flip-card-back">
+                <div class="card-face-inner">
+                  <div id="card-icon" class="card-icon">
+                    <!-- Hier kommt später ein Icon (z.B. VS, King, Kategorie) rein -->
+                  </div>
+                  <div id="card-title" class="card-title">Kartentyp</div>
+                  <div id="card-text" class="card-text">
+                    Kartentext / Frage / Aufgabe wird hier angezeigt.
+                  </div>
+                  <div id="card-footer" class="card-footer">
+                    <!-- z.B. "Gewinner verteilt: 2" oder "Verlierer trinkt: 3" -->
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
+
+        <!-- Live-Stats / Ranking -->
+        <section class="stats-panel">
+          <h2 class="stats-headline">Trink-Stats</h2>
+          <div id="stats-list" class="stats-list">
+            <!-- wird per JS mit Rangliste gefüllt -->
+          </div>
+        </section>
 
         <!-- Buttons -->
         <div class="controls">
@@ -129,7 +155,7 @@
       </section>
     </main>
 
-    <!-- SIMPLE MODAL (z.B. Roulette-Ereignis, Gewinnerwahl, Spielerauswahl) -->
+    <!-- SIMPLE MODAL (z.B. Roulette-Ereignis, Warnungen, Gewinnerwahl) -->
     <div id="modal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-content">
@@ -148,7 +174,7 @@
       </span>
     </footer>
 
-    <!-- Impressum / Datenschutz als einfache Modals -->
+    <!-- Impressum / Datenschutz als Modals -->
     <div id="legal-modal" class="modal hidden">
       <div class="modal-backdrop"></div>
       <div class="modal-content modal-scrollable">
