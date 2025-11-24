@@ -76,6 +76,21 @@ function closeModal() {
   modalTitleEl.textContent = "";
   modalBodyEl.innerHTML = "";
   modalActionsEl.innerHTML = "";
+
+function showPlayerChoiceModal(title, bodyHtml, onSelect) {
+  if (!state.players || state.players.length === 0) {
+    return;
+  }
+
+  const buttons = state.players.map((player, index) => ({
+    label: player.name,
+    onClick: () => {
+      closeModal();
+      onSelect(index);
+    },
+  }));
+
+  showModal(title, bodyHtml, buttons);
 }
 
 function showLegalModal(title, bodyHtml) {
