@@ -76,17 +76,6 @@ function closeModal() {
   modalTitleEl.textContent = "";
   modalBodyEl.innerHTML = "";
   modalActionsEl.innerHTML = "";
-  }
-
-  const buttons = state.players.map((player, index) => ({
-    label: player.name,
-    onClick: () => {
-      closeModal();
-      onSelect(index);
-    },
-  }));
-
-  showModal(title, bodyHtml, buttons);
 }
 
 function showLegalModal(title, bodyHtml) {
