@@ -1486,24 +1486,6 @@ function handleNextButton() {
   });
 }
 
-  // Karte ist aufgedeckt → Effekt ausführen
-  applyCardEffect(state.currentCard, state.activePlayerIndex, () => {
-    // Roulette aufladen
-    applyRouletteAdvance();
-
-    // Nächster Spieler
-    advanceToNextPlayer();
-
-    // Neue Karte
-    drawNextCard();
-    updateCurrentPlayerUI();
-  });
-}
-
-// Wird aufgerufen, wenn NEXT gedrückt wird
-// card: aktuell gezogene Karte
-// playerIndex: Index des aktiven Spielers
-// onDone: Callback, wenn der Effekt fertig abgehandelt ist
 function applyCardEffect(card, playerIndex, onDone) {
   const p = state.players[playerIndex];
 
