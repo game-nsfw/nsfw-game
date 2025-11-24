@@ -12,6 +12,7 @@ const state = {
   kingIndex: null,
   buddies: {},          // {playerIndex: buddyIndex}
   drinkEvents: [],      // {playerIndex, drunk, given, playerTurnAtEvent}
+  currentTargetIndex: null, // NEU: aktueller „Zielspieler“ der Karte (King-Funktion)
 };
 
 // ====== DOM REFERENZEN ======
@@ -1242,6 +1243,7 @@ function startGameFromSetup(event) {
   state.kingIndex = null;
   state.buddies = {};
   state.drinkEvents = [];
+  state.currentTargetIndex = null;
 
   updateRouletteUI();
   updateCurrentPlayerUI();
@@ -1255,13 +1257,19 @@ function startGameFromSetup(event) {
 // ====== UI UPDATES ======
 
 function updateCurrentPlayerUI() {
-  const player = state.players[state.activePlayerIndex];
-  currentPlayerNameEl.textContent = player ? player.name : "–";
-}
+  if (!state.players || state.players.length === 0) {
+    currentPlayerNameEl.textContent = "–";
+    return;
+  }
 
-function updateRouletteUI() {
-  const val = Math.max(0, Math.min(100, state.rouletteProgress));
-  rouletteFill.style.width = val + "%";
+  const baseIndex = state.activePlayerIndex;
+  const targetIndex =
+    typeof state.currentTargetIndex === "number"
+      ? state.currentTargetIndex
+      : baseIndex;
+
+  const targetPlayer = state.players[targetIndex];
+  currentPlayerNameEl.textContent = targetPlayer ? targetPlayer.name : "–";
 }
 
 // Stats unter der Karte aktualisieren
@@ -1441,7 +1449,12 @@ function drawNextCard() {
   const card = state.deck.shift();
   state.currentCard = card;
   state.discardPile.push(card);
+
+  // Standard: Zielspieler ist der, der dran ist
+  state.currentTargetIndex = state.activePlayerIndex;
+
   resetCardFlip();
+  updateCurrentPlayerUI(); // damit oben direkt der aktuelle Zielspieler steht
 }
 
 // Wird aufgerufen, wenn NEXT gedrückt wird
@@ -1453,6 +1466,25 @@ function handleNextButton() {
     revealCardUI();
     return;
   }
+
+  // Karte ist aufgedeckt → Effekt auf den "Zielspieler" anwenden
+  const targetIndex =
+    typeof state.currentTargetIndex === "number"
+      ? state.currentTargetIndex
+      : state.activePlayerIndex;
+
+  applyCardEffect(state.currentCard, targetIndex, () => {
+    // Roulette aufladen (immer für den aktiven Spieler, nicht den Zielspieler)
+    applyRouletteAdvance();
+
+    // Nächster Spieler in Reihenfolge
+    advanceToNextPlayer();
+
+    // Neue Karte ziehen
+    drawNextCard();
+    updateCurrentPlayerUI();
+  });
+}
 
   // Karte ist aufgedeckt → Effekt ausführen
   applyCardEffect(state.currentCard, state.activePlayerIndex, () => {
@@ -1972,6 +2004,35 @@ document.getElementById("btn-age-decline").addEventListener("click", () => {
 
 playerForm.addEventListener("submit", startGameFromSetup);
 
+// 👑 King: Karten-Umlenkung durch Klick auf den angezeigten Spielernamen
+currentPlayerNameEl.addEventListener("click", () => {
+  // Nur wenn ein King aktiv ist
+  if (state.kingIndex == null) return;
+
+  // Nur wenn eine Karte aufgedeckt ist
+  if (!state.currentCard || !state.isCardRevealed) return;
+
+  const kingPlayer = state.players[state.kingIndex];
+
+  showPlayerChoiceModal(
+    "King verteilt die Karte",
+    `<p>${kingPlayer.name} entscheidet, wer diese Karte abbekommt.</p>
+     <p>Jedes Umlenken kostet den King 1 Schluck.</p>`,
+    (targetIndex) => {
+      // Nur zählen, wenn wirklich umverteilt wird
+      if (
+        typeof state.currentTargetIndex === "number" &&
+        targetIndex !== state.currentTargetIndex
+      ) {
+        addDrink(state.kingIndex, 1); // King zahlt 1 Schluck für die Aktion
+      }
+
+      state.currentTargetIndex = targetIndex;
+      updateCurrentPlayerUI();
+    }
+  );
+});
+
 gameCardEl.addEventListener("click", () => {
   if (!state.isCardRevealed) {
     revealCardUI();
@@ -2000,6 +2061,7 @@ document.getElementById("btn-new-game").addEventListener("click", () => {
   state.kingIndex = null;
   state.buddies = {};
   state.drinkEvents = [];
+  state.currentTargetIndex = null;
 
   updateRouletteUI();
   updateCurrentPlayerUI();
