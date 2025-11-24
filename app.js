@@ -1411,15 +1411,15 @@ function getFooterTextForCard(card) {
       return "Entmachtet den King – er trinkt, du verteilst.";
     case "either_light": {
       const b = card.config?.baseSips || 1;
-      return `Basiswertung: ${b} verteilter Schluck`;
+      return `${b}`;
     }
     case "either_deep": {
       const s = card.config?.sips || 2;
-      return `Wertung: ${s} Schlücke – Gruppe entscheidet, wer wie viel bekommt.`;
+      return `${s}`;
     }
     case "either_too_far": {
       const s = card.config?.sips || 3;
-      return `Wertung: ${s} Schlücke – nur für harte Runden.`;
+      return `${s}`;
     }
     default:
       return "";
