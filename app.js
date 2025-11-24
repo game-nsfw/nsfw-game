@@ -12,7 +12,7 @@ const state = {
   kingIndex: null,
   buddies: {},          // {playerIndex: buddyIndex}
   drinkEvents: [],      // {playerIndex, drunk, given, playerTurnAtEvent}
-  currentTargetIndex: null, // NEU: aktueller „Zielspieler“ der Karte (King-Funktion)
+  currentTargetIndex: null, // King: aktueller Zielspieler der Karte
 };
 
 // ====== DOM REFERENZEN ======
@@ -1272,6 +1272,11 @@ function updateCurrentPlayerUI() {
   currentPlayerNameEl.textContent = targetPlayer ? targetPlayer.name : "–";
 }
 
+function updateRouletteUI() {
+  const val = Math.max(0, Math.min(100, state.rouletteProgress));
+  rouletteFill.style.width = val + "%";
+}
+
 // Stats unter der Karte aktualisieren
 function updateStatsUI() {
   if (!statsListEl) return;
@@ -1454,7 +1459,7 @@ function drawNextCard() {
   state.currentTargetIndex = state.activePlayerIndex;
 
   resetCardFlip();
-  updateCurrentPlayerUI(); // damit oben direkt der aktuelle Zielspieler steht
+  updateCurrentPlayerUI(); // oben direkt der aktuelle Zielspieler
 }
 
 // Wird aufgerufen, wenn NEXT gedrückt wird
@@ -1486,6 +1491,9 @@ function handleNextButton() {
   });
 }
 
+// card: aktuell gezogene Karte
+// playerIndex: Index des Zielspielers für diese Karte
+// onDone: Callback, wenn der Effekt fertig abgehandelt ist
 function applyCardEffect(card, playerIndex, onDone) {
   const p = state.players[playerIndex];
 
@@ -1497,7 +1505,6 @@ function applyCardEffect(card, playerIndex, onDone) {
       if (sips > 0) {
         addDrink(playerIndex, sips);
       }
-      // Keine Modals – direkt weiter
       onDone();
       break;
     }
@@ -1512,28 +1519,22 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Regelkarte ---
-    // Erklärung steht auf der Karte, ihr regelt das mündlich
-
     case "rule": {
       onDone();
       break;
     }
 
     // --- Wasserfall ---
-    // Nur Wertung +1 o.ä., der Rest steht auf der Karte
-
     case "waterfall": {
       const base = card.config?.baseDrink || 1;
       if (base > 0) {
-        addDrink(playerIndex, base); // zählt in den Stats
+        addDrink(playerIndex, base);
       }
       onDone();
       break;
     }
 
     // --- Was ist dein Preis? ---
-    // Hier brauchen wir den Gewinner -> Modal bleibt
-
     case "price": {
       const winnerGives = card.config?.winnerGives || 2;
       const html = `
@@ -1552,12 +1553,9 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Vote-Karten ---
-    // Nur Stats-Update, Abstimmung macht die Gruppe ohne Popup
-
     case "vote": {
       const drinks = card.config?.drinks || 0;
       if (drinks > 0) {
-        // zählt als verteilte Schlücke für den Zieher
         addGive(playerIndex, drinks);
       }
       onDone();
@@ -1565,19 +1563,15 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- VS-Duelle ---
-    // Gewinner + Verlierer müssen gewählt werden -> Modals bleiben
-
     case "vs": {
       const cfg = card.config || {};
       const loserDrinks = cfg.loserDrinks || 0;
       const winnerGives = cfg.winnerGives || 0;
 
-      // 1) Gewinner wählen
       showPlayerChoiceModal(
         "VS – Gewinner wählen",
         `<p>Spielt das Duell wie auf der Karte beschrieben und wählt dann den Gewinner.</p>`,
         (winnerIndex) => {
-          // 2) Verlierer wählen
           showPlayerChoiceModal(
             "VS – Verlierer wählen",
             `<p>Wer hat das Duell verloren?</p>`,
@@ -1597,8 +1591,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Richtungswechsel ---
-    // Nur Richtung ändern + evtl. Stats, keine Erklärung nötig
-
     case "direction_change": {
       const selfDrinks = card.config?.selfDrinks || 0;
       const selfGives = card.config?.selfGives || 0;
@@ -1606,7 +1598,6 @@ function applyCardEffect(card, playerIndex, onDone) {
       if (selfDrinks > 0) addDrink(playerIndex, selfDrinks);
       if (selfGives > 0) addGive(playerIndex, selfGives);
 
-      // Richtung drehen: +1 -> -1 -> +1 ...
       state.direction = state.direction * -1;
 
       onDone();
@@ -1614,8 +1605,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Trinkbuddy ---
-    // Hier muss ein Buddy ausgewählt werden -> Modal bleibt
-
     case "buddy": {
       const cfg = card.config || {};
       const initialDrink = cfg.initialDrink || 0;
@@ -1638,8 +1627,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Kategorien ---
-    // Verlierer bestimmen -> Modal bleibt
-
     case "category": {
       const loserDrinks = card.config?.loserDrinks || 0;
       showPlayerChoiceModal(
@@ -1657,8 +1644,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- King ---
-    // Nur Status setzen, Erklärung steht auf der Karte
-
     case "king": {
       state.kingIndex = playerIndex;
       onDone();
@@ -1666,13 +1651,10 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- King Killer ---
-    // Hier brauchen wir die 2/4-Auswahl -> Modal bleibt
-
     case "king_killer": {
       const killerGives = card.config?.killerGives || 1;
 
       if (state.kingIndex == null) {
-        // Kein King aktiv – einfach nichts Besonderes
         onDone();
         break;
       }
@@ -1710,8 +1692,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Entweder oder? (Light) ---
-    // Nur Wertung / Statistik, alles andere steht auf der Karte
-
     case "either_light": {
       const base = card.config?.baseSips || 1;
       if (base > 0) {
@@ -1722,7 +1702,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Entweder oder? (Deep) ---
-
     case "either_deep": {
       const sips = card.config?.sips || 2;
       if (sips > 0) {
@@ -1733,7 +1712,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Entweder oder? (Too Far) ---
-
     case "either_too_far": {
       const sips = card.config?.sips || 3;
       if (sips > 0) {
@@ -1744,7 +1722,6 @@ function applyCardEffect(card, playerIndex, onDone) {
     }
 
     // --- Fallback ---
-
     default: {
       onDone();
     }
@@ -1794,7 +1771,6 @@ function addDrink(playerIndex, amount) {
     playerTurnAtEvent: p.turns,
   });
 
-  // Buddy-Effekt (später nutzbar)
   const buddyIndex = state.buddies[playerIndex];
   if (typeof buddyIndex === "number") {
     const buddy = state.players[buddyIndex];
@@ -1988,11 +1964,8 @@ playerForm.addEventListener("submit", startGameFromSetup);
 
 // 👑 King: Karten-Umlenkung durch Klick auf den angezeigten Spielernamen
 currentPlayerNameEl.addEventListener("click", () => {
-  // Nur wenn ein King aktiv ist
-  if (state.kingIndex == null) return;
-
-  // Nur wenn eine Karte aufgedeckt ist
-  if (!state.currentCard || !state.isCardRevealed) return;
+  if (state.kingIndex == null) return;              // nur wenn King aktiv
+  if (!state.currentCard || !state.isCardRevealed) return; // nur bei aufgedeckter Karte
 
   const kingPlayer = state.players[state.kingIndex];
 
@@ -2001,12 +1974,11 @@ currentPlayerNameEl.addEventListener("click", () => {
     `<p>${kingPlayer.name} entscheidet, wer diese Karte abbekommt.</p>
      <p>Jedes Umlenken kostet den King 1 Schluck.</p>`,
     (targetIndex) => {
-      // Nur zählen, wenn wirklich umverteilt wird
       if (
         typeof state.currentTargetIndex === "number" &&
         targetIndex !== state.currentTargetIndex
       ) {
-        addDrink(state.kingIndex, 1); // King zahlt 1 Schluck für die Aktion
+        addDrink(state.kingIndex, 1); // King zahlt 1 Schluck für's Umlenken
       }
 
       state.currentTargetIndex = targetIndex;
