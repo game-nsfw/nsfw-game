@@ -1320,6 +1320,30 @@ function getIconForCard(card) {
       return "🍻";
     case "price":
       return "💸";
+    case "rule":
+      return "📜";
+    case "waterfall":
+      return "💧";
+    case "vote":
+      return "🗳️";
+    case "vs":
+      return "⚔️";
+    case "direction_change":
+      return "🔁";
+    case "buddy":
+      return "🤝";
+    case "category":
+      return "🧠";
+    case "king":
+      return "👑";
+    case "king_killer":
+      return "💀";
+    case "either_light":
+      return "❓";
+    case "either_deep":
+      return "🔥";
+    case "either_too_far":
+      return "⚠️";
     default:
       return "✨";
   }
@@ -1328,18 +1352,61 @@ function getIconForCard(card) {
 function getFooterTextForCard(card) {
   switch (card.type) {
     case "simple_drink": {
-      const sips = card.config?.drink || 0;
-      if (!sips) return "";
-      return `Trinkt: ${sips} Schluck${sips > 1 ? "e" : ""}`;
+      const s = card.config?.drink || 0;
+      return s ? `Trinkt: ${s} Schluck${s > 1 ? "e" : ""}` : "";
     }
     case "simple_give": {
-      const sips = card.config?.give || 0;
-      if (!sips) return "";
-      return `Verteilen: ${sips} Schluck${sips > 1 ? "e" : ""}`;
+      const s = card.config?.give || 0;
+      return s ? `Verteilen: ${s} Schluck${s > 1 ? "e" : ""}` : "";
     }
     case "price": {
-      const winnerGives = card.config?.winnerGives || 2;
-      return `Gewinner verteilt: ${winnerGives}`;
+      const w = card.config?.winnerGives || 2;
+      return `Gewinner verteilt: ${w}`;
+    }
+    case "waterfall": {
+      const b = card.config?.baseDrink || 1;
+      return `Du zählst als: +${b} Schluck`;
+    }
+    case "rule":
+      return "Neue Regel aufstellen oder eine aufheben.";
+    case "vote": {
+      const d = card.config?.drinks || 0;
+      return d ? `Wertung: ${d} verteilte Schlücke` : "";
+    }
+    case "vs": {
+      const l = card.config?.loserDrinks || 0;
+      const w = card.config?.winnerGives || 0;
+      return `Verlierer trinkt: ${l} | Gewinner verteilt: ${w}`;
+    }
+    case "direction_change": {
+      const d = card.config?.selfDrinks || 0;
+      const g = card.config?.selfGives || 0;
+      if (d && g) return `Du trinkst ${d} & verteilst ${g}`;
+      if (d) return `Du trinkst: ${d}`;
+      if (g) return `Du verteilst: ${g}`;
+      return "";
+    }
+    case "buddy":
+      return "Trinkbuddy aktiv – jeder Drink zählt +1 beim Buddy.";
+    case "category": {
+      const l = card.config?.loserDrinks || 0;
+      return l ? `Verlierer trinkt: ${l}` : "";
+    }
+    case "king":
+      return "Du bist King, bis eine King- oder King-Killer-Karte erscheint.";
+    case "king_killer":
+      return "Entmachtet den King – er trinkt, du verteilst.";
+    case "either_light": {
+      const b = card.config?.baseSips || 1;
+      return `Basiswertung: ${b} verteilter Schluck`;
+    }
+    case "either_deep": {
+      const s = card.config?.sips || 2;
+      return `Wertung: ${s} Schlücke – Gruppe entscheidet, wer wie viel bekommt.`;
+    }
+    case "either_too_far": {
+      const s = card.config?.sips || 3;
+      return `Wertung: ${s} Schlücke – nur für harte Runden.`;
     }
     default:
       return "";
@@ -1401,11 +1468,14 @@ function handleNextButton() {
   });
 }
 
-// Einfache Dispatcher-Logik basierend auf card.type
+// Wendet den Effekt der gezogenen Karte auf den aktuellen Spieler an.
+// onDone wird aufgerufen, wenn alles fertig ist (dann kann die Runde weitergehen).
 function applyCardEffect(card, playerIndex, onDone) {
   const p = state.players[playerIndex];
 
   switch (card.type) {
+    // --- Basis: einfache Trink- / Verteilkarten ---
+
     case "simple_drink": {
       const sips = card.config?.drink || 0;
       if (sips > 0) {
@@ -1413,13 +1483,14 @@ function applyCardEffect(card, playerIndex, onDone) {
         showModal(
           "Trinken",
           `<p>${p.name} trinkt ${sips} Schluck${sips > 1 ? "e" : ""}.</p>`,
-          [{ label: "Okay", onClick: () => { closeModal(); onDone(); } }]
+          [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
         );
       } else {
         onDone();
       }
       break;
     }
+
     case "simple_give": {
       const sips = card.config?.give || 0;
       if (sips > 0) {
@@ -1427,19 +1498,51 @@ function applyCardEffect(card, playerIndex, onDone) {
         showModal(
           "Verteilen",
           `<p>${p.name} darf ${sips} Schluck${sips > 1 ? "e" : ""} verteilen.</p>`,
-          [{ label: "Nice", onClick: () => { closeModal(); onDone(); } }]
+          [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
         );
       } else {
         onDone();
       }
       break;
     }
+
+    // --- Regelkarte ---
+
+    case "rule": {
+      showModal(
+        "Regelkarte",
+        `<p>${p.name} darf eine neue Regel aufstellen oder eine bestehende Regel aufheben.</p>
+         <p>Wer gegen eine gültige Regel verstößt, trinkt 1 Schluck – ihr passt in der Runde darauf auf.</p>`,
+        [{ label: "Alles klar", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- Wasserfall ---
+
+    case "waterfall": {
+      const base = card.config?.baseDrink || 1;
+      addDrink(playerIndex, base); // zählt in den Stats
+      showModal(
+        "Wasserfall",
+        `<p>${p.name} startet den Wasserfall: Alle setzen zum Trinken an und dürfen erst aufhören, wenn die Person rechts von ihnen aufhört.</p>
+         <p>In der Auswertung zählt ${p.name} mit +${base} Schluck.</p>`,
+        [{ label: "Los geht's", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- Was ist dein Preis? ---
+
     case "price": {
       const winnerGives = card.config?.winnerGives || 2;
-      const bodyHtml = `<p>Wer hat die verrückteste / glaubwürdigste Antwort gegeben?</p><p>Wähle den Gewinner. Er darf ${winnerGives} Schluck(e) verteilen.</p>`;
+      const html = `
+        <p>Ihr spielt die „Was ist dein Preis?“-Karte laut vor und macht die Auktion wie beschrieben.</p>
+        <p>Wer hat sich am meisten „verkauft“? Wählt den Gewinner – er darf ${winnerGives} Schluck(e) verteilen.</p>
+      `;
       showPlayerChoiceModal(
         "Was ist dein Preis?",
-        bodyHtml,
+        html,
         (winnerIndex) => {
           addGive(winnerIndex, winnerGives);
           onDone();
@@ -1447,7 +1550,232 @@ function applyCardEffect(card, playerIndex, onDone) {
       );
       break;
     }
+
+    // --- Vote-Karten ---
+
+    case "vote": {
+      const drinks = card.config?.drinks || 0;
+      if (drinks > 0) {
+        // Zählt als "verteilte" Schlücke für den Zieher, weil unklar ist, wer trinkt
+        addGive(playerIndex, drinks);
+      }
+      showModal(
+        "Vote",
+        `<p>Ihr lest die Vote-Karte laut vor und stimmt per Fingerzeig ab, wer trinken muss.</p>
+         <p>In der Statistik zählt diese Karte als ${drinks} verteilte Schluck(e) für ${p.name}.</p>`,
+        [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- VS-Duelle ---
+
+    case "vs": {
+      const cfg = card.config || {};
+      const loserDrinks = cfg.loserDrinks || 0;
+      const winnerGives = cfg.winnerGives || 0;
+
+      // 1) Gewinner wählen
+      showPlayerChoiceModal(
+        "VS – Gewinner wählen",
+        `<p>Ihr spielt das Duell wie auf der Karte beschrieben.</p>
+         <p>Wer hat gewonnen?</p>`,
+        (winnerIndex) => {
+          // 2) Verlierer wählen
+          showPlayerChoiceModal(
+            "VS – Verlierer wählen",
+            `<p>Wer hat das Duell verloren?</p>`,
+            (loserIndex) => {
+              if (loserDrinks > 0) {
+                addDrink(loserIndex, loserDrinks);
+              }
+              if (winnerGives > 0) {
+                addGive(winnerIndex, winnerGives);
+              }
+              onDone();
+            }
+          );
+        }
+      );
+      break;
+    }
+
+    // --- Richtungswechsel ---
+
+    case "direction_change": {
+      const selfDrinks = card.config?.selfDrinks || 0;
+      const selfGives = card.config?.selfGives || 0;
+
+      if (selfDrinks > 0) addDrink(playerIndex, selfDrinks);
+      if (selfGives > 0) addGive(playerIndex, selfGives);
+
+      // Richtung drehen: +1 -> -1 -> +1 ...
+      state.direction = state.direction * -1;
+
+      showModal(
+        "Richtungswechsel",
+        `<p>Die Spielrichtung wurde umgedreht.</p>`,
+        [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- Trinkbuddy ---
+
+    case "buddy": {
+      const cfg = card.config || {};
+      const initialDrink = cfg.initialDrink || 0;
+      const initialGive = cfg.initialGive || 0;
+
+      showPlayerChoiceModal(
+        "Trinkbuddy wählen",
+        `<p>${p.name} wählt einen Trinkbuddy. Immer wenn einer von euch trinken muss, trinkt der andere 1 Schluck mit.</p>`,
+        (buddyIndex) => {
+          if (buddyIndex !== playerIndex) {
+            state.buddies[playerIndex] = buddyIndex;
+            state.buddies[buddyIndex] = playerIndex;
+          }
+          if (initialDrink > 0) addDrink(playerIndex, initialDrink);
+          if (initialGive > 0) addGive(playerIndex, initialGive);
+          onDone();
+        }
+      );
+      break;
+    }
+
+    // --- Kategorien ---
+
+    case "category": {
+      const loserDrinks = card.config?.loserDrinks || 0;
+      showPlayerChoiceModal(
+        "Kategorien – Verlierer wählen",
+        `<p>Ihr spielt das Kategorien-Spiel wie auf der Karte beschrieben.</p>
+         <p>Wer ist als erstes rausgeflogen?</p>`,
+        (loserIndex) => {
+          if (loserDrinks > 0) {
+            addDrink(loserIndex, loserDrinks);
+          }
+          onDone();
+        }
+      );
+      break;
+    }
+
+    // --- King ---
+
+    case "king": {
+      state.kingIndex = playerIndex;
+      showModal(
+        "King",
+        `<p>${p.name} ist jetzt King 👑.</p>
+         <p>Der King bleibt aktiv, bis eine neue King- oder King-Killer-Karte gezogen wird.</p>
+         <p>In eurer Runde kann der King gezogene Karten an andere Spieler weitergeben – jede Weitergabe kostet den King 1 Schluck (ihr handhabt das mündlich).</p>`,
+        [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- King Killer ---
+
+    case "king_killer": {
+      const killerGives = card.config?.killerGives || 1;
+
+      if (state.kingIndex == null) {
+        showModal(
+          "King Killer",
+          `<p>Es ist aktuell kein King aktiv – die Karte verpufft.</p>`,
+          [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
+        );
+        break;
+      }
+
+      const kingPlayer = state.players[state.kingIndex];
+
+      showModal(
+        "King Killer",
+        `<p>${p.name} hat einen King Killer gezogen!</p>
+         <p>Richte über den King ${kingPlayer.name}: Trinkt er 2 oder 4 Schlücke?</p>`,
+        [
+          {
+            label: "2 Schlücke",
+            onClick: () => {
+              closeModal();
+              addDrink(state.kingIndex, 2);
+              if (killerGives > 0) addGive(playerIndex, killerGives);
+              state.kingIndex = null;
+              onDone();
+            },
+          },
+          {
+            label: "4 Schlücke",
+            onClick: () => {
+              closeModal();
+              addDrink(state.kingIndex, 4);
+              if (killerGives > 0) addGive(playerIndex, killerGives);
+              state.kingIndex = null;
+              onDone();
+            },
+          },
+        ]
+      );
+      break;
+    }
+
+    // --- Entweder oder? (Light) ---
+
+    case "either_light": {
+      const base = card.config?.baseSips || 1;
+      if (base > 0) {
+        addGive(playerIndex, base);
+      }
+      showModal(
+        "Entweder oder? (Light)",
+        `<p>Ihr lest die Frage auf der Karte vor.</p>
+         <p>Wer antwortet, darf 1 Schluck verteilen. Wer nicht antworten will, trinkt 1.</p>
+         <p>In der Statistik zählt diese Karte als ${base} verteilte Schluck(e) für ${p.name}.</p>`,
+        [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- Entweder oder? (Deep) ---
+
+    case "either_deep": {
+      const sips = card.config?.sips || 2;
+      if (sips > 0) {
+        addGive(playerIndex, sips);
+      }
+      showModal(
+        "Entweder oder? (Deep)",
+        `<p>Ihr spielt die Frage auf der Karte nach euren eigenen Regeln aus.</p>
+         <p>Die ${sips} Schlücke können getrunken oder verteilt werden – ihr entscheidet in der Runde.</p>
+         <p>In der Statistik zählt diese Karte als ${sips} verteilte Schluck(e) für ${p.name}.</p>`,
+        [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- Entweder oder? (Too Far) ---
+
+    case "either_too_far": {
+      const sips = card.config?.sips || 3;
+      if (sips > 0) {
+        addGive(playerIndex, sips);
+      }
+      showModal(
+        "Entweder oder? (Too Far)",
+        `<p>Ihr lest die Frage auf der Karte vor und entscheidet selbst, wie ihr sie spielt.</p>
+         <p>Die ${sips} Schlücke können getrunken oder verteilt werden – je nachdem, wie wild ihr unterwegs seid.</p>
+         <p>In der Statistik zählt diese Karte als ${sips} verteilte Schluck(e) für ${p.name}.</p>`,
+        [{ label: "Weiter", onClick: () => { closeModal(); onDone(); } }]
+      );
+      break;
+    }
+
+    // --- Fallback ---
+
     default: {
+      // Falls ein Kartentyp noch keine eigene Logik hat
       onDone();
     }
   }
