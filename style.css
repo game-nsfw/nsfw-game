@@ -663,6 +663,134 @@ button {
   font-size: 15px;
 }
 
+/* Coin Flip */
+
+.coin-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.coin-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.coin-instruction {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.coin {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.25), transparent 40%),
+              radial-gradient(circle at 70% 80%, rgba(0, 0, 0, 0.4), transparent 55%),
+              radial-gradient(circle, #1b1b29, #070710);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+  cursor: pointer;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform 0.3s ease-out;
+}
+
+.coin:active {
+  transform: scale(0.98);
+}
+
+.coin-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  padding: 10px;
+  text-align: center;
+}
+
+/* Vorderseite: NSFW Logo */
+
+.coin-face-front {
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.15), transparent 40%),
+              radial-gradient(circle at 70% 80%, rgba(0, 0, 0, 0.5), transparent 60%),
+              linear-gradient(145deg, #050509, #18182a);
+  border-radius: 50%;
+}
+
+.coin-front-logo {
+  font-family: "Permanent Marker", system-ui, sans-serif;
+  font-size: 26px;
+  background-image: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 2px;
+}
+
+.coin-front-sub {
+  margin-top: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--text-muted);
+}
+
+/* Rückseite: Ergebnis-Text */
+
+.coin-face-back {
+  transform: rotateY(180deg);
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.12), transparent 45%),
+              radial-gradient(circle at 70% 80%, rgba(0, 0, 0, 0.6), transparent 55%),
+              linear-gradient(145deg, #15152b, #050509);
+}
+
+.coin-result-text {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-main);
+}
+
+/* Spin-Animation – wird per JS über Klasse coin-spinning getriggert */
+
+@keyframes coin-flip-spin {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(1080deg); /* 3 volle Umdrehungen */
+  }
+}
+
+.coin-spinning {
+  animation: coin-flip-spin 1.2s cubic-bezier(0.3, 0.1, 0.3, 1);
+}
+
+/* Wenn das Ergebnis angezeigt wird, leicht "poppen" */
+
+@keyframes coin-pop {
+  0% {
+    transform: scale(0.9) rotateY(180deg);
+  }
+  100% {
+    transform: scale(1) rotateY(180deg);
+  }
+}
+
+.coin-result-ready {
+  transform: rotateY(180deg);
+  animation: coin-pop 0.18s ease-out;
+}
+
 /* Responsive */
 
 @media (min-width: 768px) {
