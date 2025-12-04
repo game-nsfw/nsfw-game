@@ -195,7 +195,7 @@ Ihr dürft erst aufhören zu trinken, wenn die Person rechts von euch aufhört.`
 
   // --- WAS IST DEIN PREIS? ---
 
-  // Auktion (3 verteilen) – Inhalt von dir ergänzen
+  // Auktion (3 verteilen)
   {
     id: "preis_auktion_gewinner_verteilt3",
     title: "Was ist dein Preis?",
@@ -215,7 +215,7 @@ Aber sag mal… war es das wirklich wert?`,
     },
   },
 
-  // Restliche Fragen – alle 2 verteilen, Text trägst du ein
+  // Restliche Fragen – alle 2 verteilen
   {
     id: "preis_frage_1",
     title: "Was ist dein Preis?",
@@ -736,7 +736,7 @@ Aber denk dran: Sei gut zu deinem Volk, bevor ein King-Killer über dich richtet
     text: `Ups… King gekillt!
 Du richtest über den alten King – wie viele Schlücke bekommt er: 2 oder 4?
 
-Für deine Tat darfst du selbst 2 Schluck verteilen!`,
+Für deine Tat darfst du selbst 1 Schluck verteilen!`,
     config: {
       killerGives: 1,
     },
@@ -1444,6 +1444,235 @@ function revealCardUI() {
   state.isCardRevealed = true;
 }
 
+// ====== HILFSFUNKTIONEN FÜR RISIKO & COIN FLIP ======
+
+// Coin-Flip: UI + Berechnung, übernimmt am Ende die Schlucke und ruft onComplete
+function openCoinFlip({ mode, baseSips, playerIndex, onComplete }) {
+  const plural = (n) => (n === 1 ? "" : "e");
+
+  let infoText = "";
+  if (mode === "give") {
+    infoText = `
+      <p>Du gehst ins Risiko mit <strong>${baseSips} Schluck${plural(baseSips)} zum Verteilen</strong>.</p>
+      <p><strong>Coin Flip Regeln:</strong></p>
+      <ul>
+        <li>Gewinn: Du darfst <strong>${baseSips * 2} Schluck${plural(
+      baseSips * 2
+    )}</strong> verteilen.</li>
+        <li>Verlust: Du trinkst <strong>1 Schluck</strong> selbst.</li>
+      </ul>
+      <p>Klick auf die Münze, um dein Schicksal zu entscheiden.</p>
+    `;
+  } else if (mode === "drink") {
+    infoText = `
+      <p>Du sollst eigentlich <strong>${baseSips} Schluck${plural(
+      baseSips
+    )}</strong> trinken.</p>
+      <p><strong>Coin Flip Regeln:</strong></p>
+      <ul>
+        <li>Gewinn: Du darfst stattdessen <strong>${baseSips} Schluck${plural(
+      baseSips
+    )}</strong> verteilen.</li>
+        <li>Verlust: Du trinkst insgesamt <strong>${baseSips + 3} Schluck${plural(
+      baseSips + 3
+    )}</strong>.</li>
+      </ul>
+      <p>Klick auf die Münze, um dein Schicksal zu entscheiden.</p>
+    `;
+  }
+
+  const bodyHtml = `
+    <div class="coin-modal-content">
+      ${infoText}
+      <div class="coin-wrapper">
+        <div id="coin-flip" class="coin">
+          <div class="coin-face coin-face-front">NSFW</div>
+          <div class="coin-face coin-face-back"></div>
+        </div>
+      </div>
+      <p id="coin-result-text" class="coin-result-text"></p>
+    </div>
+  `;
+
+  showModal("Coin Flip", bodyHtml, []);
+
+  const coinEl = document.getElementById("coin-flip");
+  const resultTextEl = document.getElementById("coin-result-text");
+
+  if (!coinEl) {
+    // Fallback – keine Coin-UI gefunden, wir machen einfach einen direkten Flip
+    const isWin = Math.random() < 0.5;
+    let drunkDelta = 0;
+    let givenDelta = 0;
+
+    if (mode === "give") {
+      if (isWin) {
+        givenDelta = baseSips * 2;
+      } else {
+        drunkDelta = 1;
+      }
+    } else if (mode === "drink") {
+      if (isWin) {
+        givenDelta = baseSips;
+      } else {
+        drunkDelta = baseSips + 3;
+      }
+    }
+    if (givenDelta > 0) addGive(playerIndex, givenDelta);
+    if (drunkDelta > 0) addDrink(playerIndex, drunkDelta);
+    closeModal();
+    if (typeof onComplete === "function") onComplete();
+    return;
+  }
+
+  let hasFlipped = false;
+
+  coinEl.addEventListener("click", () => {
+    if (hasFlipped) return;
+    hasFlipped = true;
+
+    coinEl.classList.add("coin-spinning");
+
+    const isWin = Math.random() < 0.5;
+    let drunkDelta = 0;
+    let givenDelta = 0;
+    let displayText = "";
+
+    if (mode === "give") {
+      if (isWin) {
+        givenDelta = baseSips * 2;
+        displayText = `Gewonnen! Du darfst ${givenDelta} Schluck${plural(
+          givenDelta
+        )} verteilen.`;
+      } else {
+        drunkDelta = 1;
+        displayText = `Verloren! Du trinkst 1 Schluck.`;
+      }
+    } else if (mode === "drink") {
+      if (isWin) {
+        givenDelta = baseSips;
+        displayText = `Gewonnen! Du darfst ${givenDelta} Schluck${plural(
+          givenDelta
+        )} verteilen statt zu trinken.`;
+      } else {
+        drunkDelta = baseSips + 3;
+        displayText = `Verloren! Du trinkst jetzt insgesamt ${drunkDelta} Schluck${plural(
+          drunkDelta
+        )}.`;
+      }
+    }
+
+    setTimeout(() => {
+      coinEl.classList.remove("coin-spinning");
+      const backFace = coinEl.querySelector(".coin-face-back");
+      if (backFace) {
+        backFace.textContent = displayText;
+      }
+      coinEl.classList.add("coin-result-ready");
+
+      if (resultTextEl) {
+        resultTextEl.textContent = displayText;
+      }
+
+      modalActionsEl.innerHTML = "";
+      const btn = document.createElement("button");
+      btn.className = "btn-primary";
+      btn.textContent = "Übernehmen";
+      btn.addEventListener("click", () => {
+        closeModal();
+        if (givenDelta > 0) addGive(playerIndex, givenDelta);
+        if (drunkDelta > 0) addDrink(playerIndex, drunkDelta);
+        if (typeof onComplete === "function") onComplete();
+      });
+      modalActionsEl.appendChild(btn);
+    }, 900); // Mindestdauer für den Spin
+  });
+}
+
+// Risiko-Dialog für reine Trink-Karten ("Trink!")
+function handleDrinkWithOptionalRisk(playerIndex, baseSips, onDone) {
+  const plural = (n) => (n === 1 ? "" : "e");
+
+  showModal(
+    "Risiko?",
+    `
+      <p>Du sollst ${baseSips} Schluck${plural(baseSips)} trinken.</p>
+      <p>Du hast zwei Optionen:</p>
+      <ul>
+        <li><strong>Ohne Risiko:</strong> Du trinkst einfach ${baseSips} Schluck${plural(
+      baseSips
+    )}.</li>
+        <li><strong>Mit Coin Flip:</strong> Du gehst ins Risiko.</li>
+      </ul>
+    `,
+    [
+      {
+        label: "Ohne Risiko",
+        onClick: () => {
+          closeModal();
+          if (baseSips > 0) addDrink(playerIndex, baseSips);
+          if (typeof onDone === "function") onDone();
+        },
+      },
+      {
+        label: "Risiko (Coin Flip)",
+        className: "btn-ghost",
+        onClick: () => {
+          closeModal();
+          openCoinFlip({
+            mode: "drink",
+            baseSips,
+            playerIndex,
+            onComplete: onDone,
+          });
+        },
+      },
+    ]
+  );
+}
+
+// Risiko-Dialog für Verteil-Karten ("Verteil!", King-Killer-Give, Trinkbuddy-Give)
+function handleGiveWithOptionalRisk(playerIndex, baseSips, onDone) {
+  const plural = (n) => (n === 1 ? "" : "e");
+
+  showModal(
+    "Risiko?",
+    `
+      <p>Du darfst ${baseSips} Schluck${plural(baseSips)} verteilen.</p>
+      <p>Du hast zwei Optionen:</p>
+      <ul>
+        <li><strong>Ohne Risiko:</strong> Du verteilst einfach ${baseSips} Schluck${plural(
+      baseSips
+    )}.</li>
+        <li><strong>Mit Coin Flip:</strong> Du gehst ins Risiko.</li>
+      </ul>
+    `,
+    [
+      {
+        label: "Ohne Risiko",
+        onClick: () => {
+          closeModal();
+          if (baseSips > 0) addGive(playerIndex, baseSips);
+          if (typeof onDone === "function") onDone();
+        },
+      },
+      {
+        label: "Risiko (Coin Flip)",
+        className: "btn-ghost",
+        onClick: () => {
+          closeModal();
+          openCoinFlip({
+            mode: "give",
+            baseSips,
+            playerIndex,
+            onComplete: onDone,
+          });
+        },
+      },
+    ]
+  );
+}
+
 // ====== KARTENLOGIK ======
 
 function drawNextCard() {
@@ -1503,18 +1732,22 @@ function applyCardEffect(card, playerIndex, onDone) {
     case "simple_drink": {
       const sips = card.config?.drink || 0;
       if (sips > 0) {
-        addDrink(playerIndex, sips);
+        // Trink-Karte: Risiko möglich (Coin Flip)
+        handleDrinkWithOptionalRisk(playerIndex, sips, onDone);
+      } else {
+        onDone();
       }
-      onDone();
       break;
     }
 
     case "simple_give": {
       const sips = card.config?.give || 0;
       if (sips > 0) {
-        addGive(playerIndex, sips);
+        // Verteil-Karte: Risiko möglich (Coin Flip)
+        handleGiveWithOptionalRisk(playerIndex, sips, onDone);
+      } else {
+        onDone();
       }
-      onDone();
       break;
     }
 
@@ -1556,6 +1789,7 @@ function applyCardEffect(card, playerIndex, onDone) {
     case "vote": {
       const drinks = card.config?.drinks || 0;
       if (drinks > 0) {
+        // Wertung bei Vote wird als "verteilte Schlücke" gezählt
         addGive(playerIndex, drinks);
       }
       onDone();
@@ -1618,9 +1852,17 @@ function applyCardEffect(card, playerIndex, onDone) {
             state.buddies[playerIndex] = buddyIndex;
             state.buddies[buddyIndex] = playerIndex;
           }
-          if (initialDrink > 0) addDrink(playerIndex, initialDrink);
-          if (initialGive > 0) addGive(playerIndex, initialGive);
-          onDone();
+
+          if (initialDrink > 0) {
+            addDrink(playerIndex, initialDrink);
+          }
+
+          if (initialGive > 0) {
+            // Nur bei der "Verteilen"-Variante des Trinkbuddys gibt es Risiko
+            handleGiveWithOptionalRisk(playerIndex, initialGive, onDone);
+          } else {
+            onDone();
+          }
         }
       );
       break;
@@ -1671,9 +1913,17 @@ function applyCardEffect(card, playerIndex, onDone) {
             onClick: () => {
               closeModal();
               addDrink(state.kingIndex, 2);
-              if (killerGives > 0) addGive(playerIndex, killerGives);
-              state.kingIndex = null;
-              onDone();
+
+              // Für die Tat darf der Killer 1 Schluck verteilen – mit Risiko möglich
+              if (killerGives > 0) {
+                handleGiveWithOptionalRisk(playerIndex, killerGives, () => {
+                  state.kingIndex = null;
+                  onDone();
+                });
+              } else {
+                state.kingIndex = null;
+                onDone();
+              }
             },
           },
           {
@@ -1681,9 +1931,16 @@ function applyCardEffect(card, playerIndex, onDone) {
             onClick: () => {
               closeModal();
               addDrink(state.kingIndex, 4);
-              if (killerGives > 0) addGive(playerIndex, killerGives);
-              state.kingIndex = null;
-              onDone();
+
+              if (killerGives > 0) {
+                handleGiveWithOptionalRisk(playerIndex, killerGives, () => {
+                  state.kingIndex = null;
+                  onDone();
+                });
+              } else {
+                state.kingIndex = null;
+                onDone();
+              }
             },
           },
         ]
